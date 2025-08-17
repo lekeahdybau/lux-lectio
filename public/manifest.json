@@ -1,0 +1,27 @@
+{
+  "name": "Lux Lectio - Lectures Liturgiques",
+  "short_name": "Lux Lectio",
+  "description": "Découvrez les textes liturgiques quotidiens de la messe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["lifestyle", "education", "books"],
+  "lang": "fr",
+  "dir": "ltr"
+}

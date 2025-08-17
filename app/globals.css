@@ -1,0 +1,321 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../styles/scrollbar.css";
+
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 196 100% 88%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 196 100% 88%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 196 100% 88%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 45 93% 47%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 45 93% 47%;
+    --radius: 0.5rem;
+
+    /* Couleurs liturgiques dynamiques */
+    --liturgical-primary: 34 197 94;
+    --liturgical-secondary: 22 163 74;
+    --liturgical-accent: 16 185 129;
+    --liturgical-bg: 240 253 244;
+    --liturgical-text: 21 128 61;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 45 93% 47%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 45 93% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, rgb(var(--liturgical-bg)) 0%, hsl(196 100% 88%) 100%);
+  }
+}
+
+/* Classes utilitaires pour les couleurs liturgiques */
+.bg-liturgical-primary {
+  background-color: rgb(var(--liturgical-primary));
+}
+
+.text-liturgical-primary {
+  color: rgb(var(--liturgical-primary));
+}
+
+.border-liturgical-primary {
+  border-color: rgb(var(--liturgical-primary));
+}
+
+.bg-liturgical-secondary {
+  background-color: rgb(var(--liturgical-secondary));
+}
+
+.text-liturgical-secondary {
+  color: rgb(var(--liturgical-secondary));
+}
+
+.bg-liturgical-accent {
+  background-color: rgb(var(--liturgical-accent));
+}
+
+.text-liturgical-accent {
+  color: rgb(var(--liturgical-accent));
+}
+
+.bg-liturgical-bg {
+  background-color: rgb(var(--liturgical-bg));
+}
+
+.text-liturgical-text {
+  color: rgb(var(--liturgical-text));
+}
+
+/* Animations et transformations */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(var(--liturgical-primary), 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(var(--liturgical-primary), 0.6);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+/* Effets de hover */
+.hover-lift {
+  transition: all 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(var(--liturgical-primary), 0.4);
+}
+
+/* Styles pour le contenu liturgique */
+.prose {
+  @apply text-gray-700 dark:text-gray-300;
+}
+
+.prose p {
+  @apply mb-3 leading-relaxed;
+}
+
+.prose strong {
+  @apply font-semibold text-green-600 dark:text-green-400;
+}
+
+.prose em {
+  @apply italic text-green-500 dark:text-green-300;
+}
+
+/* Styles pour les cartes liturgiques */
+.liturgical-card {
+  background: linear-gradient(135deg, rgb(var(--liturgical-bg)) 0%, rgba(135, 206, 235, 0.8) 100%);
+  border: 1px solid rgb(var(--liturgical-primary) / 0.2);
+  transition: all 0.3s ease;
+}
+
+.liturgical-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(var(--liturgical-primary), 0.15);
+  border-color: rgb(var(--liturgical-primary) / 0.4);
+}
+
+.dark .liturgical-card {
+  background: linear-gradient(135deg, rgb(var(--liturgical-bg)) 0%, rgba(var(--card), 0.8) 100%);
+}
+
+/* Couleurs liturgiques spécifiques */
+.liturgical-vert {
+  --liturgical-primary: 34 197 94;
+  --liturgical-secondary: 22 163 74;
+  --liturgical-accent: 16 185 129;
+  --liturgical-bg: 240 253 244;
+  --liturgical-text: 21 128 61;
+}
+
+.liturgical-violet {
+  --liturgical-primary: 147 51 234;
+  --liturgical-secondary: 124 58 237;
+  --liturgical-accent: 168 85 247;
+  --liturgical-bg: 250 245 255;
+  --liturgical-text: 109 40 217;
+}
+
+.liturgical-rouge {
+  --liturgical-primary: 239 68 68;
+  --liturgical-secondary: 220 38 127;
+  --liturgical-accent: 251 113 133;
+  --liturgical-bg: 254 242 242;
+  --liturgical-text: 185 28 28;
+}
+
+.liturgical-blanc {
+  --liturgical-primary: 125 211 252;
+  --liturgical-secondary: 56 189 248;
+  --liturgical-accent: 186 230 253;
+  --liturgical-bg: 240 249 255;
+  --liturgical-text: 2 132 199;
+}
+
+.liturgical-rose {
+  --liturgical-primary: 236 72 153;
+  --liturgical-secondary: 219 39 119;
+  --liturgical-accent: 251 113 133;
+  --liturgical-bg: 253 242 248;
+  --liturgical-text: 190 24 93;
+}
+
+.liturgical-noir {
+  --liturgical-primary: 75 85 99;
+  --liturgical-secondary: 55 65 81;
+  --liturgical-accent: 156 163 175;
+  --liturgical-bg: 248 250 252;
+  --liturgical-text: 51 65 85;
+}
+
+.dark .liturgical-vert {
+  --liturgical-bg: 2 44 34;
+}
+
+.dark .liturgical-violet {
+  --liturgical-bg: 24 24 27;
+}
+
+.dark .liturgical-rouge {
+  --liturgical-bg: 35 7 7;
+}
+
+.dark .liturgical-blanc {
+  --liturgical-bg: 15 23 42;
+}
+
+.dark .liturgical-rose {
+  --liturgical-bg: 35 7 23;
+}
+
+.dark .liturgical-noir {
+  --liturgical-bg: 15 23 42;
+}

@@ -1,0 +1,43 @@
+.animate-navbar-tab {
+  transition: background 0.3s, color 0.3s, transform 0.3s;
+}
+.animate-navbar-tabs {
+  animation: navbarFadeIn 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes navbarFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ajout d'un style pour rendre la barre de scroll bien visible sur la navbar des lectures */
+.mb-2::-webkit-scrollbar {
+  height: 10px !important;
+}
+.mb-2::-webkit-scrollbar-thumb {
+  background: #888 !important;
+  border-radius: 8px !important;
+}
+.mb-2::-webkit-scrollbar-track {
+  background: #e0e0e0 !important;
+}
+
+.scrollbar-thin {
+  scrollbar-width: auto !important;
+  scrollbar-color: #888 #e0e0e0 !important;
+}
+
+.scrollbar-visible {
+  overflow-x: scroll !important;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #e0e0e0;
+}
+.scrollbar-visible::-webkit-scrollbar {
+  height: 10px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 8px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
