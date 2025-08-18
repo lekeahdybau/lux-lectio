@@ -2,12 +2,19 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { ReadingCard } from "./reading-card"
 
-interface MesseCarouselProps {
-  messes: Array<{
-    id: string
-    nom: string
-    lectures: any[] // tableau de lectures (AelfReading)
+import type { AelfReading } from "@/lib/api"
+
+interface Messe {
+  id: string
+  nom: string
+  lectures: Array<AelfReading & {
+    id?: string
+    type?: string
   }>
+}
+
+interface MesseCarouselProps {
+  messes: Messe[]
 }
 
 export function MesseCarousel({ messes }: MesseCarouselProps) {
@@ -42,8 +49,9 @@ export function MesseCarousel({ messes }: MesseCarouselProps) {
         {/* Carousel horizontal des lectures de la messe courante */}
         <div className="flex gap-6 overflow-x-auto pb-2 hide-scrollbar">
           {currentMesse.lectures.map((lecture, idx) => (
-            <div key={lecture.id || idx} className="min-w-[340px] max-w-[480px]">
-              <ReadingCard reading={lecture} type={lecture.type} />
+    
+    <div key={lecture.id || idx} className="min-w-[340px] max-w-[480px]">
+              <ReadingCard reading={lecture} />
             </div>
           ))}
         </div>

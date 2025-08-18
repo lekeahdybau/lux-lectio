@@ -1,5 +1,5 @@
-import type { AelfReading } from "@/lib/api"
 import React from "react"
+import type { AelfReading } from "@/lib/api";
 
 // Map d'abréviations des livres bibliques vers leurs noms complets
 const bookAbbreviations: Record<string, string> = {
@@ -25,20 +25,26 @@ const bookAbbreviations: Record<string, string> = {
 // Fonction pour extraire le nom complet du livre à partir de la référence
 
 interface ReadingCardProps {
-  reading: any; // Le type sera enrichi
+  // We accept partial runtime objects because upstream data can be incomplete
+  reading: Partial<AelfReading>;
   className?: string;
 }
 
-const typeLabels = {
-  lecture_1: "Première lecture",
+const typeLabels: Record<string, string> = {
+  lecture_1: "1ère lecture",
+  lecture_2: "2e lecture",
+  lecture_3: "3e lecture",
   psaume: "Psaume",
-  lecture_2: "Deuxième lecture",
+  cantique: "Cantique",
   evangile: "Évangile",
 }
 
 
 export function ReadingCard({ reading, className = "" }: ReadingCardProps) {
-  const { type, reference, descriptiveTitle, excerpt } = reading;
+  const type = reading.type || "";
+  const reference = reading.reference || reading.ref || "";
+  const descriptiveTitle = (reading as any).descriptiveTitle || reading.titre || reading.intro_lue || "";
+  const excerpt = (reading as any).excerpt || reading.titre || reading.intro_lue || "";
 
   return (
     <div className={`w-full my-6 ${className}`}>
@@ -71,7 +77,7 @@ export function ReadingCard({ reading, className = "" }: ReadingCardProps) {
       )}
 
       {/* Refrain psalmique */}
-      {reading.refrain_psalmique && (
+  {reading.refrain_psalmique && (
         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mb-6 italic border-l-4 border-green-500">
           <div className="text-green-800 dark:text-green-200 font-medium text-center">
             <span className="text-green-600 dark:text-green-400 font-bold mr-2">Refrain :</span>
@@ -94,9 +100,10 @@ export function ReadingCard({ reading, className = "" }: ReadingCardProps) {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
         <div
           className={`prose prose-lg max-w-none dark:prose-invert leading-relaxed ${type === "psaume" ? "italic text-center" : ""}`}
-          dangerouslySetInnerHTML={{ __html: reading.contenu }}
+          dangerouslySetInnerHTML={{ __html: reading.contenu || "" }}
         />
       </div>
     </div>
   )
 }
+

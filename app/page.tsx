@@ -32,22 +32,22 @@ interface GroupedReading {
 
 // Labels et emojis pour les types de lectures
 const typeLabels: Record<string, string> = {
-  lecture_1: 'Première Lecture',
-  lecture_1_2: '1ère Lecture (brève)',
-  lecture_1_3: '2ème Lecture',
-  lecture_1_4: '3ème Lecture',
-  lecture_1_5: '4ème Lecture', 
-  lecture_1_6: '5ème Lecture',
-  lecture_1_7: '6ème Lecture',
-  lecture_2: 'Deuxième Lecture',
+  lecture_1: '1ere Lecture',
+  lecture_1_2: '1ere Lecture (brève)',
+  lecture_1_3: '2e Lecture',
+  lecture_1_4: '3e Lecture',
+  lecture_1_5: '4e Lecture', 
+  lecture_1_6: '5e Lecture',
+  lecture_1_7: '7e Lecture',
+  lecture_2: '2e Lecture',
   epitre: 'Épître',
   evangile: 'Évangile',
   psaume: 'Psaume',
-  psaume_2: '2ème Psaume',
-  psaume_3: '3ème Psaume', 
-  psaume_4: '4ème Psaume',
+  psaume_2: '2e Psaume',
+  psaume_3: '3e Psaume', 
+  psaume_4: '4e Psaume',
   cantique: 'Cantique',
-  cantique_2: '2ème Cantique',
+  cantique_2: '2e Cantique',
   alleluia: 'Alléluia'
 };
 
@@ -105,88 +105,95 @@ const normalizeReadings = (readings: any[]): GroupedReading[] => {
   if (!readings?.length) return [];
 
   const groupedMap = new Map<string, Reading[]>();
-  const processedTypes = new Set<string>();
-  
+
+  // Première passe : regrouper par type de base (sans suffixe numérique)
   for (let i = 0; i < readings.length; i++) {
     const reading = readings[i];
-    let type = getReadingType(reading, readings);
+    const baseType = getReadingType(reading, readings);
     const reference = reading.reference || reading.ref || "";
-    let descriptiveTitle = reading.intro_lue || typeLabels[type] || "Lecture";
+    let descriptiveTitle = reading.intro_lue || typeLabels[baseType] || "Lecture";
 
-    // Gestion spéciale pour la Vigile Pascale et cas similaires
     if (reading.titre?.includes("Au choix")) {
       descriptiveTitle = reading.titre;
     }
-    
-    // Gérer les lectures multiples du même type (ex: Vigile Pascale)
-    const sameTypeReadings = readings.filter(r => getReadingType(r, readings) === type);
-    if (sameTypeReadings.length > 1) {
-      // Ajouter un index pour différencier les lectures du même type
-      const typeIndex = sameTypeReadings.findIndex(r => r === reading);
-      if (typeIndex > 0) {
-        type = `${type}_${typeIndex + 1}`;
-        // Créer des labels spéciaux pour les lectures multiples
-        const specialLabels: Record<string, string> = {
-          'lecture_1_2': '1ère Lecture (brève)',
-          'lecture_1_3': '2ème Lecture',
-          'lecture_1_4': '3ème Lecture', 
-          'lecture_1_5': '4ème Lecture',
-          'lecture_1_6': '5ème Lecture',
-          'lecture_1_7': '6ème Lecture',
-          'psaume_2': '2ème Psaume',
-          'psaume_3': '3ème Psaume',
-          'psaume_4': '4ème Psaume',
-          'cantique_2': '2ème Cantique',
-        };
-        descriptiveTitle = specialLabels[type] || `${typeLabels[type.split('_')[0]]} ${typeIndex + 1}`;
-      }
-    }
-    
+
     // Gestion spéciale pour l'épître
     if (reading.type === 'epitre') {
-      type = 'epitre';
       descriptiveTitle = 'Épître';
     }
 
     const processedReading: Reading = {
       ...reading,
-      type,
+      type: baseType,
       reference,
       descriptiveTitle,
       excerpt: reading.titre || reading.intro_lue || "",
     };
 
-    const group = groupedMap.get(type) || [];
+    const group = groupedMap.get(baseType) || [];
     group.push(processedReading);
-    groupedMap.set(type, group);
+    groupedMap.set(baseType, group);
   }
 
-  // Trier les lectures dans un ordre liturgique approprié
-  const liturgicalOrder = [
-    'lecture_1', 'lecture_1_2', 'lecture_1_3', 'lecture_1_4', 'lecture_1_5', 'lecture_1_6', 'lecture_1_7',
-    'psaume', 'psaume_2', 'psaume_3', 'psaume_4',
-    'lecture_2', 'lecture_2_2', 'lecture_2_3', 
-    'cantique', 'cantique_2',
+  // Construire map d'options par type
+  const optionsMap = new Map<string, Reading[][]>();
+  groupedMap.forEach((arr, key) => {
+    if (arr.length > 1) {
+      optionsMap.set(key, arr.map(r => [r]));
+    } else {
+      optionsMap.set(key, [arr]);
+    }
+  });
+
+  // Ordre exact demandé par l'utilisateur
+  const desiredSequence = [
+    'lecture_1', // 1ère lecture (forme longue/brève)
+    'psaume',    // Psaume au choix (si plusieurs) ou simple
+    'lecture_2', // 2ème lecture (forme longue/brève)
+    'psaume',
+    'lecture_3',
+    'cantique',
+    'lecture_4', // forme longue uniquement
+    'psaume',
+    'lecture_5',
+    'cantique',
+    'lecture_6',
+    'psaume',
+    'lecture_7',
+    'psaume',
     'epitre',
     'alleluia',
+    // 'alleluia_psaume' not a distinct key in data - use 'psaume' after alleluia if present
     'evangile'
   ];
 
-  // Conversion en tableau d'objets avec tri liturgique
-  const sortedEntries = Array.from(groupedMap.entries()).sort(([a], [b]) => {
-    const indexA = liturgicalOrder.indexOf(a);
-    const indexB = liturgicalOrder.indexOf(b);
-    if (indexA === -1 && indexB === -1) return 0;
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    return indexA - indexB;
+  const result: Array<{ type: string; readings: Reading[]; options: Reading[][] }> = [];
+
+  // Helper to push a type if present and not already consumed
+  const pushType = (key: string) => {
+    if (!optionsMap.has(key)) return;
+    const opts = optionsMap.get(key)!;
+    if (!opts || opts.length === 0) return;
+    result.push({ type: key, readings: opts[0], options: opts });
+    optionsMap.delete(key);
+  };
+
+  // Iterate desired order and push groups when present
+  for (const key of desiredSequence) {
+    // For 'psaume' positions, prefer to push psaume only once when it exists
+    if (key === 'psaume') {
+      pushType('psaume');
+      continue;
+    }
+    pushType(key);
+  }
+
+  // Append any remaining types not covered above (fallback)
+  optionsMap.forEach((opts, key) => {
+    result.push({ type: key, readings: opts[0], options: opts });
   });
-  
-  return sortedEntries.map(([type, readings]) => ({
-    type,
-    readings,
-    options: [readings]  // Garder la compatibilité avec le code existant
-  }));
+
+  return result;
 };
 
 // Composant principal
@@ -207,10 +214,33 @@ export default function HomePage() {
     return Array.isArray(lectures) ? normalizeReadings(lectures) : [];
   }, [liturgicalData, messeIndex]);
 
-  // Pour déboguer
-  console.log('liturgicalData:', liturgicalData)
-  console.log('loading:', loading)
-  console.log('error:', error)
+  // Logs détaillés pour le debugging
+  console.log('État de l\'application:', {
+    loading,
+    error,
+    date: currentDate.toISOString(),
+    hasData: !!liturgicalData,
+    readings: liturgicalData?.lectures ? Object.keys(liturgicalData.lectures).length : 0,
+    messeIndex,
+    couleur: liturgicalData?.informations?.couleur
+  });
+  
+  if (error) {
+    console.error('Détails de l\'erreur:', {
+      message: error,
+      dateRequetee: currentDate.toISOString(),
+      etatDonnees: liturgicalData ? 'présentes' : 'absentes',
+      lecturesDisponibles: liturgicalData?.lectures ? Object.keys(liturgicalData.lectures) : []
+    });
+  }
+
+  if (liturgicalData) {
+    console.log('Structure des lectures:', {
+      types: Object.keys(liturgicalData.lectures || {}),
+      nbMesses: liturgicalData.messes?.length || 0,
+      lecturesMesseCourante: liturgicalData.messes?.[messeIndex]?.lectures?.length || 0
+    });
+  }
 
   // Couleur liturgique dynamique (par défaut violet)
   const color = (liturgicalData?.informations?.couleur as "violet"|"vert"|"rouge"|"blanc"|"rose"|"noir") || "violet"
@@ -252,12 +282,40 @@ export default function HomePage() {
       <div className={`p-2 sm:p-6 max-w-3xl mx-auto min-h-screen transition-colors duration-300 ${bgColor} overflow-x-hidden`}>
         <Card className="liturgical-card">
           <CardContent className="p-8 text-center">
-            <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Erreur de chargement</p>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={refreshData} variant="outline" className={`hover:scale-105 transition-transform border-${accentColor}-500 text-${accentColor}-700`}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer
-            </Button>
+            <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
+              {error.includes('API') ? 'Service AELF temporairement indisponible' : 'Erreur de chargement'}
+            </p>
+            <p className="text-muted-foreground mb-4">
+              <span className="block mb-2">
+                {error.includes('API') ? 
+                  'Nous ne pouvons pas accéder aux lectures liturgiques pour le moment.' :
+                  error
+                }
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {error.includes('API') ? 
+                  'Le service AELF est peut-être en maintenance. Veuillez réessayer dans quelques instants.' :
+                  'Si le problème persiste, veuillez nous contacter.'
+                }
+              </span>
+            </p>
+            <div className="flex flex-col gap-2 items-center">
+              <Button 
+                onClick={refreshData} 
+                variant="outline" 
+                className={`hover:scale-105 transition-transform border-${accentColor}-500 text-${accentColor}-700 w-full max-w-xs`}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Réessayer maintenant
+              </Button>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="ghost" 
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Recharger la page
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -475,7 +533,7 @@ const ReadingsTabs = memo(function ReadingsTabs({
 
   const activeGroup = readings[activeGroupIndex];
   const activeOptionIndex = selectedOptions[activeGroupIndex] || 0;
-  const activeReading = activeGroup?.options?.[activeOptionIndex]?.[0];
+  const activeReading = activeGroup?.options && activeGroup.options[activeOptionIndex] ? activeGroup.options[activeOptionIndex][0] : null;
 
   if (!activeReading) return null;
 
@@ -494,7 +552,7 @@ const ReadingsTabs = memo(function ReadingsTabs({
             };
             const isActive = activeGroupIndex === idx;
             
-            if (group.options?.length > 1) {
+            if (Array.isArray(group.options) && group.options.length > 1) {
               return (
                 <DropdownMenu key={idx}>
                   <DropdownMenuTrigger asChild>
@@ -513,14 +571,14 @@ const ReadingsTabs = memo(function ReadingsTabs({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className={`bg-white/80 dark:bg-black/80 backdrop-blur-sm border-${accentColor}-300 dark:border-${accentColor}-700`}>
-                    {group.options.map((option, optionIdx) => (
+                    {Array.isArray(group.options) ? group.options.map((option, optionIdx) => (
                       <DropdownMenuItem key={optionIdx} onSelect={() => {
                         setSelectedOptions(prev => ({ ...prev, [idx]: optionIdx }));
                         setActiveGroupIndex(idx);
                       }}>
                         {option[0]?.descriptiveTitle || `Option ${optionIdx + 1}`}
                       </DropdownMenuItem>
-                    ))}
+                    )) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               );
@@ -543,6 +601,7 @@ const ReadingsTabs = memo(function ReadingsTabs({
       </div>
       <div className="animate-slide-in-right">
         <ReadingCard
+          // ReadingCard accepts Partial<AelfReading> so we can safely pass runtime data
           reading={activeReading}
           className="animate-slide-in-right"
         />
