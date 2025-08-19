@@ -1,7 +1,6 @@
 "use client"
 
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Book, Clock, BookOpen, User, Info, Settings, Heart, Menu, X, Calendar, Cross, Sun, Moon, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
@@ -26,12 +25,16 @@ const navigation = [
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
-  const { setCurrentDate, refreshData } = useLiturgical()
   const pathname = usePathname()
-  const { liturgicalData, liturgicalColor } = useLiturgical()
+  const { setCurrentDate, refreshData, liturgicalData, liturgicalColor, currentDate } = useLiturgical()
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  
+  // Handle mounting state
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  const { currentDate } = useLiturgical()
   const formatLiturgicalDate = (date: Date) =>
     date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
   
@@ -40,6 +43,8 @@ export function Sidebar() {
     newDate.setDate(newDate.getDate() + days)
     setCurrentDate(newDate)
   }
+
+
 
   const getLiturgicalColorName = (color: string) => {
     const colorNames: Record<string, string> = {
@@ -143,15 +148,17 @@ export function Sidebar() {
                 </Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="h-6 w-6 hover-glow"
-                  aria-label="Changer le thème"
-                >
-                  {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
-                </Button>
+                {mounted && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="h-6 w-6 hover-glow"
+                    aria-label="Changer le thème"
+                  >
+                    {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -237,11 +244,7 @@ export function Sidebar() {
                     </span>
                   </div>
                   {/* Nombre de messes disponibles */}
-                  {liturgicalData.messes && liturgicalData.messes.length > 1 && (
-                    <span className="text-xs bg-liturgical-primary/20 text-liturgical-primary px-2 py-1 rounded-full font-medium">
-                      {liturgicalData.messes.length} messes
-                    </span>
-                  )}
+                  {/* Nombre de messes disponibles supprimé */}
                 </div>
               </div>
             )}
@@ -250,38 +253,7 @@ export function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {/* Lectures disponibles section */}
-            {liturgicalData && liturgicalData.messes && liturgicalData.messes.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-xs font-semibold text-liturgical-primary mb-2 uppercase tracking-wider opacity-75">Lectures disponibles</h4>
-                <div className="space-y-1">
-                  {liturgicalData.messes.map((messe, idx) => (
-                    <div key={idx} className="text-xs text-gray-600 dark:text-gray-400 p-2 rounded-lg bg-white/30 dark:bg-slate-800/30">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2 h-2 bg-liturgical-primary rounded-full"></span>
-                        <span className="font-medium">{messe.nom}</span>
-                      </div>
-                      {messe.lectures && messe.lectures.length > 0 && (
-                        <div className="ml-4 space-y-1">
-                          {messe.lectures.slice(0, 4).map((lecture, lectureIdx) => (
-                            <div key={lectureIdx} className="flex items-center gap-1 text-xs opacity-75">
-                              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-                              <span className="truncate">
-                                {lecture.titre || lecture.type || `Lecture ${lectureIdx + 1}`}
-                              </span>
-                            </div>
-                          ))}
-                          {messe.lectures.length > 4 && (
-                            <div className="text-xs text-liturgical-primary opacity-60 ml-3">
-                              +{messe.lectures.length - 4} autres...
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Lectures disponibles supprimées */}
             
             {/* Navigation principale */}
             {navigation.map((item, index) => {
@@ -309,6 +281,21 @@ export function Sidebar() {
 
           {/* Footer */}
           <div className="p-4 border-t border-liturgical-primary/20">
+            {/* Theme Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-muted-foreground">Thème</span>
+              {mounted && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="h-6 w-6 hover:bg-liturgical-primary/10"
+                >
+                  {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                </Button>
+              )}
+            </div>
+            
             <div className="liturgical-card p-3 rounded-xl text-center animate-slide-in-left">
               <p className="text-xs text-liturgical-text">
                 Développé avec ❤️ par<br />

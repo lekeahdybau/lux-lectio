@@ -1,12 +1,14 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import "../styles/navbar-animations.css"
 import { ChevronLeft, ChevronRight, RefreshCw, Share2, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CalendarWidget } from "@/components/calendar-widget"
-import { ReadingsTabs } from "@/components/readings-tabs"
+import { ReadingsTabs } from "@/components/readings-tabs.new"
 import { useLiturgical } from "@/components/liturgical-provider"
+import type { AelfData } from "@/lib/api"
 
 interface PageState {
   showCalendar: boolean;
@@ -60,14 +62,32 @@ function formatDateFr(date: Date) {
   return date.toLocaleDateString('fr-FR', options);
 }
 
+// Loading component
+function LoadingPlaceholder() {
+  return (
+    <main className="container mx-auto p-4">
+      <div className="animate-pulse">
+        <div className="h-8 bg-secondary rounded w-2/3 mb-4"></div>
+        <div className="h-6 bg-secondary rounded w-1/2 mb-2"></div>
+        <div className="h-4 bg-secondary rounded w-1/3"></div>
+      </div>
+    </main>
+  );
+}
+
 // Composant principal de la page
 export default function Home() {
-  const { state: liturgicalState, dispatch: liturgicalDispatch } = useLiturgical();
+  const liturgical = useLiturgical();
+  const [mounted, setMounted] = useState(false);
   
   // États locaux
   const [pageState, setPageState] = useState<PageState>({
     showCalendar: false
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleCalendar = () => {
     setPageState(prev => ({
@@ -77,8 +97,8 @@ export default function Home() {
   };
 
   // Gérer le changement de date
-  const handleDateChange = (newDate: string) => {
-    liturgicalDispatch({ type: "SET_DATE", payload: newDate });
+  const handleDateChange = (newDate: Date) => {
+    liturgical.setCurrentDate(newDate);
     setPageState(prev => ({
       ...prev,
       showCalendar: false
@@ -87,9 +107,7 @@ export default function Home() {
 
   // Navigation entre les dates
   const navigateDate = (direction: 'prev' | 'next') => {
-    if (!liturgicalState.currentDate) return;
-    
-    const currentDate = new Date(liturgicalState.currentDate);
+    const currentDate = liturgical.currentDate;
     const newDate = new Date(currentDate);
     
     if (direction === 'prev') {
@@ -98,18 +116,17 @@ export default function Home() {
       newDate.setDate(currentDate.getDate() + 1);
     }
     
-    handleDateChange(newDate.toISOString().split('T')[0]);
+    handleDateChange(newDate);
   };
 
   // Partager la lecture actuelle
   const shareCurrentReading = async () => {
-    if (!liturgicalState.currentDate || !liturgicalState.data) {
+    if (!mounted || !liturgical.liturgicalData) {
       return;
     }
 
     try {
-      const date = new Date(liturgicalState.currentDate);
-      const formattedDate = formatDateFr(date);
+      const formattedDate = formatDateFr(liturgical.currentDate);
       
       const shareData = {
         title: 'Lectures du jour',
@@ -128,100 +145,59 @@ export default function Home() {
     }
   };
 
-  // Si pas de données, afficher un placeholder
-  if (!liturgicalState.data) {
+  // Loading state
+  if (!mounted || liturgical.loading) {
+    return <LoadingPlaceholder />;
+  }
+
+  // Error state
+  if (liturgical.error) {
     return (
       <main className="container mx-auto p-4">
-        <div className="animate-pulse">
-          <div className="h-8 bg-secondary rounded w-2/3 mb-4"></div>
-          <div className="h-6 bg-secondary rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-secondary rounded w-1/3"></div>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+          <h1 className="text-lg font-semibold mb-2">Erreur</h1>
+          <p>{liturgical.error}</p>
+          <Button 
+            variant="outline" 
+            onClick={liturgical.refreshData}
+            className="mt-4"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Réessayer
+          </Button>
         </div>
       </main>
     );
   }
 
   // Extraire les informations liturgiques
-  const { informations } = liturgicalState.data;
+  const informations = liturgical.liturgicalData?.informations;
 
   return (
     <main className="container max-w-6xl mx-auto">
-      {/* En-tête avec la date et les commandes */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-4 pt-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-          {/* Contrôles de date */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateDate('prev')}
-              title="Jour précédent"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={toggleCalendar}
-              className="gap-2"
-            >
-              <CalendarDays className="h-4 w-4" />
-              {formatDateFr(new Date(liturgicalState.currentDate))}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateDate('next')}
-              title="Jour suivant"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => liturgicalDispatch({ type: "REFRESH" })}
-              title="Rafraîchir"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={shareCurrentReading}
-              title="Partager"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Informations liturgiques */}
-        <div className="mb-4">
-          <SlidingLiturgicalTitle liturgicalInfo={informations} />
-        </div>
-      </div>
-
-      {/* Calendrier */}
-      {pageState.showCalendar && (
-        <div className="px-4 mb-4">
-          <CalendarWidget 
-            selectedDate={liturgicalState.currentDate}
-            onSelect={handleDateChange}
-          />
-        </div>
-      )}
-
-      {/* Contenu principal */}
       <div className="px-4">
-        <ReadingsTabs 
-          date={liturgicalState.currentDate}
-        />
+        {(liturgical.liturgicalData && Array.isArray(liturgical.liturgicalData.messes) && liturgical.liturgicalData.messes.length > 1) ? (
+          <Tabs defaultValue={"messe-0"} className="w-full">
+            <TabsList className="mb-4">
+              {liturgical.liturgicalData.messes.map((messe, idx) => (
+                <TabsTrigger key={idx} value={`messe-${idx}`}>{messe.nom || `Messe ${idx + 1}`}</TabsTrigger>
+              ))}
+            </TabsList>
+            {liturgical.liturgicalData.messes.map((messe, idx) => (
+              <TabsContent key={idx} value={`messe-${idx}`} className="mt-4">
+                <ReadingsTabs 
+                  readings={messe.lectures || []}
+                  accentColor={liturgical.liturgicalColor || "vert"}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
+        ) : (
+          <ReadingsTabs 
+            readings={liturgical.liturgicalData?.messes?.[0]?.lectures || []}
+            accentColor={liturgical.liturgicalColor || "vert"}
+          />
+        )}
       </div>
     </main>
   );

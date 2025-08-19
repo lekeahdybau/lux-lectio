@@ -56,7 +56,9 @@ async function isValidJson(response: Response): Promise<boolean> {
     const clone = response.clone();
     const text = await clone.text();
     console.log('Réponse brute:', text);
-    return text.length > 0 && JSON.parse(text) !== null;
+    if (!text || text.length === 0) return false;
+    const json = JSON.parse(text);
+    return json !== null && Object.keys(json).length > 0;
   } catch {
     return false;
   }
@@ -95,7 +97,7 @@ export async function fetchLiturgicalReadings(date: string): Promise<AelfData> {
         }
       }
       
-      throw new Error(errorMessage)
+      throw new Error("Réponse API non valide: " + responseText)
     }
 
     const data = await response.json()
