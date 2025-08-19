@@ -1,208 +1,155 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import type { AelfReading } from "@/lib/api";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useState, useEffect, memo } from "react";
 import { ReadingCard } from "@/components/reading-card";
-import { 
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { AelfReading } from "@/lib/api";
 
-const typeIcons: Record<string, string> = {
-  'lecture_1': '📖',
-  'lecture_2': '📜',
-  'lecture_3': '📚',
-  'lecture_4': '📚',
-  'lecture_5': '📚',
-  'lecture_6': '📚',
-  'lecture_7': '📚',
-  'epitre': '✉️',
-  'evangile': '✝️',
-  'psaume': '🎵',
-  'cantique': '🎼',
-  'alleluia': '🌟',
-  'sequence': '📜'
-};
-
-const typeNames: Record<string, string> = {
-  'lecture_1': 'Première Lecture',
-  'lecture_2': 'Deuxième Lecture',
-  'lecture_3': 'Troisième Lecture',
-  'lecture_4': 'Quatrième Lecture',
-  'lecture_5': 'Cinquième Lecture',
-  'lecture_6': 'Sixième Lecture',
-  'lecture_7': 'Septième Lecture',
-  'epitre': 'Épître',
-  'evangile': 'Évangile',
-  'psaume': 'Psaume',
-  'cantique': 'Cantique',
-  'alleluia': 'Alléluia Solennel',
-  'sequence': 'Séquence'
-};
+interface GroupedReading {
+  type: string;
+  reading: AelfReading;
+}
 
 interface ReadingsTabsProps {
-  readings: AelfReading[];
-  accentColor: string;
+  date?: string;
+  readings?: GroupedReading[];
+  accentColor?: string;
 }
 
-export function ReadingsTabs({ readings, accentColor }: ReadingsTabsProps) {
-  const [tab, setTab] = useState("0");
-  const [selectedVersions, setSelectedVersions] = useState<Record<number, number>>({});
-  const listRef = useRef<HTMLDivElement>(null);
-  const triggerRefs = useRef<(HTMLButtonElement | null)[]>([]);
+const typeLabels: Record<string, string> = {
+  lecture_1: '1ère Lecture',
+  lecture_2: '2e Lecture',
+  epitre: 'Épître',
+  evangile: 'Évangile',
+  psaume: 'Psaume',
+  cantique: 'Cantique',
+};
+
+const readingEmojis: Record<string, string> = {
+  lecture_1: "📖",
+  lecture_2: "📖",
+  epitre: "✉️",
+  evangile: "✝️",
+  psaume: "🎵",
+  cantique: "🎼",
+};
+
+const LoadingSpinner = () => (
+  <div className="animate-spin">
+    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+  </div>
+);
+
+export const ReadingsTabs = memo(function ReadingsTabs({ date, readings: initialReadings, accentColor = "bg-primary" }: ReadingsTabsProps) {
+  const [activeReading, setActiveReading] = useState<string | null>(null);
+  const [readings, setReadings] = useState<GroupedReading[]>(initialReadings || []);
+  const [loading, setLoading] = useState(!initialReadings);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollLeft = 0;
+    if (!initialReadings) {
+      fetchReadings();
     }
-    // Réinitialiser les versions sélectionnées quand les lectures changent
-    setSelectedVersions({});
-  }, [readings]);
+  }, [date, initialReadings]);
 
-  useEffect(() => {
-    if (tab !== "0" && triggerRefs.current[parseInt(tab)]) {
-      // Désactivation du défilement automatique
-      // triggerRefs.current[parseInt(tab)]?.scrollIntoView({ behavior: "smooth", inline: "center" });
+  const fetchReadings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/aelf?date=${date || new Date().toISOString().split('T')[0]}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des lectures');
+      }
+      
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.message || 'Erreur lors de la récupération des données');
+      }
+
+      // Transformer les lectures en format GroupedReading
+      const formattedReadings: GroupedReading[] = Object.entries(data.lectures)
+        .filter(([_, reading]) => reading && typeof reading === 'object')
+        .map(([type, reading]) => ({
+          type,
+          reading: reading as AelfReading
+        }));
+
+      setReadings(formattedReadings);
+      if (formattedReadings.length > 0 && !activeReading) {
+        setActiveReading(formattedReadings[0].type);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
-  }, [tab, readings]);
-
-  const getButtonClasses = (isActive: boolean) => {
-    const baseClasses = "px-3 py-1 rounded-lg font-medium flex items-center gap-1 transition-all duration-300 whitespace-nowrap flex-shrink-0 min-w-[100px] justify-between text-xs";
-    return `${baseClasses} ${
-      isActive 
-        ? `bg-${accentColor}-500 text-white shadow-lg scale-105` 
-        : `bg-white/50 dark:bg-black/20 border-${accentColor}-300 dark:border-${accentColor}-700 text-black dark:text-white`
-    }`;
   };
 
-  const renderButton = (reading: AelfReading, idx: number, onClick: () => void) => (
-    <Button
-      variant={tab === String(idx) ? "default" : "outline"}
-      className={getButtonClasses(tab === String(idx))}
-      onClick={onClick}
-    >
-      <span className="flex items-center gap-2">
-        <span className="text-sm">
-          {typeIcons[reading.type || 'lecture_1'] || '📄'}
-        </span>
-        <span className="text-xs">
-          {typeNames[reading.type || 'lecture_1'] || 'Lecture'}
-        </span>
-      </span>
-      {(reading.versions || reading.choix) && (
-        <ChevronDown className="h-4 w-4 opacity-70" />
-      )}
-    </Button>
-  );
+  const currentReading = activeReading 
+    ? readings.find(r => r.type === activeReading)?.reading 
+    : readings[0]?.reading;
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Erreur de chargement</AlertTitle>
+        <AlertDescription className="space-y-4">
+          <p>Impossible de charger les données liturgiques. Vérifiez votre connexion internet.</p>
+          <p>Si le problème persiste, veuillez nous contacter.</p>
+          <Button onClick={fetchReadings} variant="outline" className="mt-4 gap-2">
+            <LoadingSpinner />
+            Réessayer maintenant
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!readings || readings.length === 0) {
+    return (
+      <Alert>
+        <AlertTitle>Aucune lecture disponible</AlertTitle>
+        <AlertDescription>
+          Aucune lecture n&apos;est disponible pour cette date.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <Tabs value={tab} onValueChange={setTab}>
-      <div className="relative flex items-center">
-        <TabsList
-          ref={listRef}
-          className={`mb-2 rounded-lg shadow bg-${accentColor}-100 dark:bg-${accentColor}-900 border border-${accentColor}-500 flex p-1 transition-all overflow-x-auto scrollbar-thin animate-navbar-tabs scrollbar-visible`}
-          style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth', minWidth: 'fit-content' }}
-        >
-          {readings.map((reading, idx) => {
-            const hasVersions = reading.versions !== undefined;
-            const hasChoix = reading.choix && reading.choix.length > 0;
-
-            if (hasVersions || hasChoix) {
-              return (
-                <DropdownMenu key={idx}>
-                  <DropdownMenuTrigger asChild>
-                    {renderButton(reading, idx, () => setTab(String(idx)))}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    className={`bg-white/80 dark:bg-black/80 backdrop-blur-sm border-${accentColor}-300 dark:border-${accentColor}-700`}
-                  >
-                    {hasVersions ? (
-                      <>
-                        <DropdownMenuItem 
-                          onSelect={() => {
-                            setTab(String(idx));
-                            setSelectedVersions(prev => ({ ...prev, [idx]: 0 }));
-                          }}
-                        >
-                          Version longue
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onSelect={() => {
-                            setTab(String(idx));
-                            setSelectedVersions(prev => ({ ...prev, [idx]: 1 }));
-                          }}
-                        >
-                          Version brève
-                        </DropdownMenuItem>
-                      </>
-                    ) : hasChoix && reading.choix?.map((option, optionIdx) => (
-                      <DropdownMenuItem
-                        key={optionIdx}
-                        onSelect={() => {
-                          setTab(String(idx));
-                          setSelectedVersions(prev => ({ ...prev, [idx]: optionIdx }));
-                        }}
-                      >
-                        {option.titre || `Option ${optionIdx + 1}`}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
-
-            return (
-              <TabsTrigger
-                key={idx}
-                value={String(idx)}
-                ref={(el: HTMLButtonElement | null) => { triggerRefs.current[idx] = el; }}
-                className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 whitespace-nowrap flex-shrink-0 text-black
-                  data-[state=active]:bg-${accentColor}-500
-                  data-[state=active]:text-white dark:data-[state=active]:text-white`}
-              >
-                <span>
-                  {typeIcons[reading.type || 'lecture_1'] || '📄'} 
-                  {typeNames[reading.type || 'lecture_1'] || 'Lecture'}
-                </span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+    <div className="w-full space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {readings.map(({ type, reading }) => (
+          <Button
+            key={type}
+            variant={activeReading === type ? "default" : "outline"}
+            className={`${activeReading === type ? accentColor : ''}`}
+            onClick={() => setActiveReading(type)}
+          >
+            <span className="mr-2">{readingEmojis[type] || "📑"}</span>
+            {typeLabels[type] || type}
+          </Button>
+        ))}
       </div>
 
-      {readings.map((reading, idx) => {
-        const selectedVersion = selectedVersions[idx] || 0;
-        let displayReading = { ...reading };
-
-        if (reading.versions) {
-          const version = selectedVersion === 0 ? reading.versions.longue : reading.versions.breve;
-          displayReading = {
-            ...reading,
-            contenu: version.contenu,
-            reference: version.reference,
-            titre: version.titre
-          };
-        } else if (reading.choix && reading.choix.length > 0) {
-          const choix = reading.choix[selectedVersion];
-          displayReading = {
-            ...reading,
-            contenu: choix.contenu,
-            titre: choix.titre,
-            reference: choix.reference
-          };
-        }
-
-        return (
-          <TabsContent key={idx} value={String(idx)} className="animate-slide-in-right">
-            <ReadingCard reading={displayReading} />
-          </TabsContent>
-        );
-      })}
-    </Tabs>
+      {currentReading && (
+        <ReadingCard 
+          reading={currentReading}
+        />
+      )}
+    </div>
   );
-}
+});
